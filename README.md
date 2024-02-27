@@ -21,7 +21,7 @@ In AWS, identities play a crucial role in controlling access to the AWS account 
    - The diagram below illustrates the relationships among groups, users, and roles.
    - Policies can be attached to identities, and users can inherit group policies.
 
-   ![Identities Diagram](https://github.com/DimitryZH/securing-AWS/assets/146372946/7e1c69d2-5793-43cd-8ecc-8e8761e84138) <!-- Replace this URL with the actual diagram URL -->
+   ![Identities Diagram](https://github.com/DimitryZH/securing-AWS/assets/146372946/7e1c69d2-5793-43cd-8ecc-8e8761e84138) 
 
 ## IAM Policies and Authentication
 
@@ -43,7 +43,7 @@ In AWS, identities play a crucial role in controlling access to the AWS account 
    - Resources represent objects within a service (e.g., an S3 bucket).
    - Actions define what can be done with a resource, with the type of action specified by the resource (e.g., S3's CreateBucket operation).
 
-## Implementing
+### Implementing
 
 ### Part 1: Mastering AWS Identities and Policies
 
@@ -77,48 +77,47 @@ In AWS, identities play a crucial role in controlling access to the AWS account 
 - Adjust the S3 bucket name and folder structure as needed.
 - Test the policies using the AWS Console.
 
-**[AWS_commands.sh](https://github.com/DimitryZH/securing-AWS/blob/main/aws_commands.sh):** This script contains essential AWS CLI commands corresponding to the steps outlined above. Execute these commands in your terminal to automate the process.
+## Part 1. Summary 
 
+**[AWS_commands.sh](https://github.com/DimitryZH/securing-AWS/blob/main/aws_commands.sh):** This script contains essential AWS CLI commands corresponding to the steps outlined above. Execute these commands in your terminal to automate the process.
 
 # Part 2: Securely Access Resources with IAM Service Roles
 
-When we access a resource as a user, our credentials such as passwords and access keys are used to confirm we can use that resource. However, there are instances where we need to access resources belonging to another user or where a resource has to access another resource. This is accomplished with roles which use temporary credentials to provide access. In this tutorial, we will configure an EC2 instance with a service role to securely access an S3 bucket.
+When we access a resource as a user, our credentials such as passwords and access keys are used to confirm we can use that resource. However, there are instances where we need to access resources belonging to another user or where a resource has to access another resource. This is accomplished with roles which use temporary credentials to provide access. In this part, we will configure an EC2 instance with a service role to securely access an S3 bucket.
 
-## What We Will Do:
+## Setting Up Our Working Environment with Cloudformation.
 
-- Create a working environment with Cloudformation.
-- Create a role and attach a policy.
-- Modify a policy.
-- Attach a role to a policy.
-
-## Setting Up Our Working Environment
-
-We will create the tutorial environment with AWS Cloudformation, which is a service that creates and configures AWS resources. Cloudformation uses a template that describes all the resources that we want to setup. Our tutorial environment includes a Virtual Private Cloud (VPC), and EC2 Linux server instance, and an S3 bucket. Setting up these resources with either the AWS console or CLI can take time and effort. We will use Cloudformation to create our tutorial environment rapidly and efficiently so we can get to the tutorial for managing access to AWS resources.
-![loudformation-resources](https://github.com/DimitryZH/AWS-IAM/assets/146372946/868533dd-25fb-4308-88e7-98e41e8c4863)
-
-
+We will create the environment with AWS Cloudformation, which is a service that creates and configures AWS resources. Cloudformation uses a template that describes all the resources that we want to setup. Our environment includes a Virtual Private Cloud (VPC), and EC2 Linux server instance, and an S3 bucket. Setting up these resources with either the AWS console or CLI can take time and effort. We will use Cloudformation to create our  environment rapidly and efficiently so we can  manage access to AWS resources.
+ 
 1. Open the Cloudformation console.
 2. Choose Create stack.
-3. Upload a Cloudformation template. (Use this file link - create-tutorial-environment.yaml)
-4. Name the stack and S3 bucket.
-5. Accept default values and advance to the next screen.
-6. Review the stack details before creating the stack.
-7. Choose Submit to create the stack.
+3. Upload a Cloudformation template.
+   Use this file: ![cloudformation-create-environment.yaml](https://github.com/DimitryZH/AWS-IAM/blob/main/cloudformation-create-environment.yaml)
+5. Name the stack and S3 bucket.
+6. Accept default values and advance to the next screen.
+7. Review the stack details before creating the stack.
+8. Choose Submit to create the stack.
 
-...
-
+![Cloudformation-resources](https://github.com/DimitryZH/AWS-IAM/assets/146372946/868533dd-25fb-4308-88e7-98e41e8c4863)
+ The environment diagram  we created from Cloudformation designer tab.
+ 
 ## Creating Service Roles
-
 AWS Identities provide access to AWS resources. IAM users are identities that are tied to an individual user and have long term credentials in the form of passwords and access keys. IAM roles are another type of identity but have temporary credentials that provide permission to access resources based on an attached policy.
-
-### Creating Service Roles
 
 1. Open the IAM console by using the search bar.
 2. Choose Roles to create a role.
 3. Choose Create role.
 4. Choose AWS Service to create the role.
 5. Select EC2 under Common use cases and choose Next.
+6. Write a policy using provided JSON file ).
+7. 
+8. Attach a role to a policy
+Review and create the policy.
+## Creating Service Roles
 
+
+- Modify a policy.
+- Attach a role to a policy.
 ...
 
 ## Testing the Service Role
@@ -127,15 +126,41 @@ Test the service role by connecting to EC2 instance in the stack we created earl
 
 1. Choose the EC2 instance by the instance ID and Connect.
 2. Use EC2 Instance Connect to open a terminal.
-3. List the contents of the S3 bucket.
+3. List the contents of the S3 bucket. Verify that the EC2 instance lacks S3 access:
+
+```bash
+aws s3 ls s3://pcg-s3-service-role-tutorial
+# Unable to locate credentials. You can configure credentials by running "aws configure".
+```
+As expected, the instance doesn’t have permission to access S3. We can fix that by adding the service role to the instance. Go back to the EC2 console and choose the server’s Instance ID to open the summary of details about the instance.
+In the summary, we can see that the IAM Role is blank.
+We can fix that by choosing Actions > Security > Modify IAM Role.
+In the Modify IAM Role screen, select the role we created previously, then choose Update IAM role.
+Let's test the role by going back to the terminal and listing the contents of the bucket again.
+```bash
+aws s3 ls s3://pcg-s3-service-role-tutorial
+```
+No errors! But we haven’t put anything in the bucket yet. Let’s try that next by creating a file and copying it to the bucket.
+
 4. Test uploading and downloading files.
-
-...
-
+```bash
+echo "Creating roles" > file.txt
+aws s3 cp file.txt s3://pcg-s3-service-role-tutorial
+# upload: ./file.txt to s3://pcg-s3-service-role-tutorial/file.txt
+aws s3 ls s3://pcg-s3-service-role-tutorial
+```
+ For completeness, we’ll download the file into another directory and display the file contents.
+```bash
+mkdir download
+aws s3 cp s3://pcg-s3-service-role-tutorial/file.txt ./download/
+# download: s3://pcg-s3-service-role-tutorial/file.txt to download/file.txt
+cat ./download/file.txt
+```
+You will see: "Creating roles". 
 ## Clean Up
 
 In the Cloudformation console, select and delete the stack.
 
-## What We Did
+## Part 2. Summary 
 
 The focus of this tutorial is how to securely access resources with roles and temporary credentials. We created a role for a service and applied a policy that allowed it to access another resource. In this case, we attached a role to an EC2 instance that lets it access an S3 bucket. We can edit a role and add other statements, such as providing access to a relational database, for instance. The key is to use roles to enable actions without exposing user credentials by placing them in service, such as EC2.
